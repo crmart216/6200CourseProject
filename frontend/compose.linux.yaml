@@ -1,0 +1,10 @@
+# For a Linux backend bound only to host 127.0.0.1.
+services:
+  frontend:
+    build: .
+    network_mode: host
+    environment:
+      API_BASE_URL: http://127.0.0.1:8000
+      PORT: "3000"
+      HOST: "127.0.0.1"
+    restart: unless-stopped

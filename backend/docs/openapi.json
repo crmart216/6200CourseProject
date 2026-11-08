@@ -2,10 +2,52 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Group Chat API",
-    "description": "Group chat REST API. No authentication, authorization, or encryption yet. Client-supplied identities are untrusted.",
+    "description": "Group chat REST API with optional RSA-OAEP-SHA256 group key escrow. Deliberately no authentication or authorization; identities are untrusted. Message content is not encrypted by the backend.",
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/publickey": {
+      "get": {
+        "tags": [
+          "Key exchange"
+        ],
+        "summary": "Get Server Public Key",
+        "description": "Get the server's persistent PEM RSA public key for RSA-OAEP-SHA256 encryption.",
+        "operationId": "get_server_public_key_api_v1_publickey_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPublicKeyRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "post": {
         "tags": [
@@ -596,7 +638,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MemberRead"
+                  "$ref": "#/components/schemas/MemberJoinRead"
                 }
               }
             }
@@ -1234,6 +1276,19 @@
             "type": "string",
             "format": "uuid",
             "title": "Created By"
+          },
+          "encrypted_group_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted Group Key"
           }
         },
         "additionalProperties": false,
@@ -1321,6 +1376,19 @@
             "type": "string",
             "format": "uuid",
             "title": "User Id"
+          },
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key"
           }
         },
         "additionalProperties": false,
@@ -1329,6 +1397,43 @@
           "user_id"
         ],
         "title": "MemberCreate"
+      },
+      "MemberJoinRead": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Joined At"
+          },
+          "encrypted_group_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted Group Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id",
+          "user_id",
+          "joined_at"
+        ],
+        "title": "MemberJoinRead"
       },
       "MemberRead": {
         "properties": {
@@ -1443,6 +1548,19 @@
           "content"
         ],
         "title": "MessageUpdate"
+      },
+      "ServerPublicKeyRead": {
+        "properties": {
+          "public_key": {
+            "type": "string",
+            "title": "Public Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_key"
+        ],
+        "title": "ServerPublicKeyRead"
       },
       "UserCreate": {
         "properties": {

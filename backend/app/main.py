@@ -11,7 +11,11 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=get_settings().app_name,
         version="0.1.0",
-        description="Group chat REST API. No authentication, authorization, or encryption yet. Client-supplied identities are untrusted.",
+        description=(
+            "Group chat REST API with optional RSA-OAEP-SHA256 group key escrow. "
+            "Deliberately no authentication or authorization; identities are untrusted. "
+            "Message content is not encrypted by the backend."
+        ),
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",

@@ -2,6 +2,12 @@ from datetime import UTC, datetime
 
 from app.models.chat import Group, Membership, Message, User
 from app.repository.chat import ChatRepository
+from app.services.crypto import (
+    InvalidKeyPayload,
+    decrypt_group_key,
+    encrypt_for_public_key,
+    public_key_pem,
+)
 
 
 class DomainError(Exception):
@@ -29,9 +35,25 @@ class ChatService:
     def list_users(self, limit, offset):
         return self.repo.users(limit, offset)
 
+    def get_server_public_key(self):
+        return {"public_key": public_key_pem()}
+
     def create_group(self, data):
         self.require(User, data.created_by)
-        group = self.repo.add(Group(**data.model_dump()))
+        symmetric_key = None
+        if data.encrypted_group_key is not None:
+            try:
+                symmetric_key = decrypt_group_key(data.encrypted_group_key)
+            except InvalidKeyPayload as exc:
+                raise DomainError(422, str(exc)) from exc
+        group = self.repo.add(
+            Group(
+                name=data.name,
+                description=data.description,
+                created_by=data.created_by,
+                symmetric_key=symmetric_key,
+            )
+        )
         self.repo.add(Membership(group_id=group.id, user_id=data.created_by))
         return group
 
@@ -52,9 +74,23 @@ class ChatService:
         self.repo.delete(self.require(Group, group_id))
 
     def add_member(self, group_id, data):
-        self.require(Group, group_id)
+        group = self.require(Group, group_id)
         self.require(User, data.user_id)
-        return self.repo.add(Membership(group_id=group_id, user_id=data.user_id))
+        encrypted_group_key = None
+        if group.symmetric_key is not None:
+            if data.public_key is None:
+                raise DomainError(422, "public_key is required to join an encrypted group")
+            try:
+                encrypted_group_key = encrypt_for_public_key(group.symmetric_key, data.public_key)
+            except InvalidKeyPayload as exc:
+                raise DomainError(422, str(exc)) from exc
+        member = self.repo.add(Membership(group_id=group_id, user_id=data.user_id))
+        return {
+            "group_id": member.group_id,
+            "user_id": member.user_id,
+            "joined_at": member.joined_at,
+            "encrypted_group_key": encrypted_group_key,
+        }
 
     def list_members(self, group_id, limit, offset):
         self.require(Group, group_id)

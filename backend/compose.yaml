@@ -24,9 +24,12 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://chat:chat@db:5432/chat
+      SERVER_PRIVATE_KEY_PATH: /app/keys/server_private_key.pem
+    volumes: ["server_keys:/app/keys"]
     ports: ["127.0.0.1:8000:8000"]
     depends_on:
       migrate:
         condition: service_completed_successfully
 volumes:
+  server_keys:
   postgres_data:

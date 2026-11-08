@@ -37,6 +37,11 @@ class GroupCreate(Input):
     name: Name
     description: str = Field(default="", max_length=2000)
     created_by: UUID
+    # Base64 RSA-OAEP-SHA256 ciphertext containing exactly 32 AES-256 key bytes.
+    # Optional so pre-existing plaintext clients continue to function.
+    encrypted_group_key: (
+        Annotated[str, StringConstraints(min_length=1, max_length=8192)] | None
+    ) = None
 
 
 class GroupUpdate(Input):
@@ -54,12 +59,23 @@ class GroupRead(Output):
 
 class MemberCreate(Input):
     user_id: UUID
+    # Required when joining a group with a symmetric key. PEM-encoded RSA public key.
+    public_key: Annotated[str, StringConstraints(min_length=1, max_length=8192)] | None = None
 
 
 class MemberRead(Output):
     group_id: UUID
     user_id: UUID
     joined_at: datetime
+
+
+class MemberJoinRead(MemberRead):
+    # Included only when joining a group with a symmetric key.
+    encrypted_group_key: str | None = None
+
+
+class ServerPublicKeyRead(Output):
+    public_key: str
 
 
 class MessageCreate(Input):

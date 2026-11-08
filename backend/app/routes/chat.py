@@ -10,10 +10,12 @@ from app.schemas.chat import (
     GroupRead,
     GroupUpdate,
     MemberCreate,
+    MemberJoinRead,
     MemberRead,
     MessageCreate,
     MessageRead,
     MessageUpdate,
+    ServerPublicKeyRead,
     UserCreate,
     UserRead,
 )
@@ -25,6 +27,12 @@ router = APIRouter(
 )
 Limit = Annotated[int, Query(ge=1, le=100)]
 Offset = Annotated[int, Query(ge=0)]
+
+
+@router.get("/publickey", response_model=ServerPublicKeyRead, tags=["Key exchange"])
+def get_server_public_key(controller: Controller):
+    """Get the server's persistent PEM RSA public key for RSA-OAEP-SHA256 encryption."""
+    return controller.get_server_public_key()
 
 
 @router.post("/users", response_model=UserRead, status_code=201, tags=["Users"])
@@ -78,7 +86,11 @@ def delete_group(controller: Controller, group_id: UUID):
 
 
 @router.post(
-    "/groups/{group_id}/members", response_model=MemberRead, status_code=201, tags=["Members"]
+    "/groups/{group_id}/members",
+    response_model=MemberJoinRead,
+    response_model_exclude_none=True,
+    status_code=201,
+    tags=["Members"],
 )
 def add_member(controller: Controller, group_id: UUID, data: MemberCreate):
     """Add member."""

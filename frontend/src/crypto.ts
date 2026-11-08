@@ -27,6 +27,13 @@ export function fromBase64(value: string): Uint8Array {
   return Uint8Array.from(decoded, character => character.charCodeAt(0));
 }
 
+/** Copy byte views into a guaranteed ArrayBuffer for Web Crypto BufferSource types. */
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const result = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(result).set(bytes);
+  return result;
+}
+
 function pemToDer(pem: string): Uint8Array {
   const match = pem.match(/-----BEGIN PUBLIC KEY-----([\s\S]*?)-----END PUBLIC KEY-----/);
   if (!match) throw new Error('Expected a PEM-encoded RSA public key');
@@ -51,7 +58,7 @@ export async function generateGroupKeyForServer(serverPublicKey: string): Promis
   encryptedGroupKey: string;
 }> {
   const subtle = cryptoApi().subtle;
-  const rsa = await subtle.importKey('spki', pemToDer(serverPublicKey), {name: 'RSA-OAEP', hash: 'SHA-256'}, false, ['encrypt']);
+  const rsa = await subtle.importKey('spki', toArrayBuffer(pemToDer(serverPublicKey)), {name: 'RSA-OAEP', hash: 'SHA-256'}, false, ['encrypt']);
   // The 32 random bytes must be temporarily exportable to wrap for the server.
   const exportableKey = await subtle.generateKey({name: 'AES-GCM', length: 256}, true, ['encrypt', 'decrypt']);
   const raw = await subtle.exportKey('raw', exportableKey);
@@ -65,7 +72,7 @@ export async function unwrapGroupKey(encryptedGroupKey: string, privateKey: Cryp
   const subtle = cryptoApi().subtle;
   let raw: ArrayBuffer;
   try {
-    raw = await subtle.decrypt({name: 'RSA-OAEP'}, privateKey, fromBase64(encryptedGroupKey));
+    raw = await subtle.decrypt({name: 'RSA-OAEP'}, privateKey, toArrayBuffer(fromBase64(encryptedGroupKey)));
   } catch {
     throw new Error('Cannot unwrap the group key with this browser\'s RSA private key.');
   }
@@ -93,6 +100,6 @@ export async function decryptMessage(serialized: string, key: CryptoKey): Promis
   if (parts.length !== 2) throw new Error('Invalid encrypted message format');
   const iv = fromBase64(parts[0]);
   if (iv.length !== 12) throw new Error('Invalid message nonce');
-  const plaintext = await cryptoApi().subtle.decrypt({name: 'AES-GCM', iv}, key, fromBase64(parts[1]));
+  const plaintext = await cryptoApi().subtle.decrypt({name: 'AES-GCM', iv: toArrayBuffer(iv)}, key, toArrayBuffer(fromBase64(parts[1])));
   return decoder.decode(plaintext);
 }

@@ -15,6 +15,12 @@ test('serves frontend, proxies JSON/query/status and handles 204', async () => {
   try {
     assert.match(await (await fetch(url)).text(), /common/);
     assert.equal((await fetch(url + '/app.js')).status,200);
+    assert.equal((await fetch(url + '/crypto.js')).status,200);
+    assert.equal((await fetch(url + '/key-store.js')).status,200);
+    assert.match(await (await fetch(url + '/logs')).text(), /PUBLIC ACTIVITY LOG/);
+    assert.match(await (await fetch(url + '/logs?group=abc')).text(), /group chat logs/i);
+    assert.equal((await fetch(url + '/logs.js')).status,200);
+    assert.equal((await fetch(url + '/logs.css')).status,200);
     const response = await fetch(url + '/api/v1/groups?limit=100&offset=100', {method:'POST',headers:{'content-type':'application/json'}, body:JSON.stringify({name:'Test'})});
     assert.equal(response.status,201); assert.deepEqual(await response.json(),{url:'/api/v1/groups?limit=100&offset=100',method:'POST',body:{name:'Test'}});
     assert.equal((await fetch(url + '/api/v1/groups')).status,409);

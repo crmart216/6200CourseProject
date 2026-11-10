@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Common · Public activity logs</title>
+  <link rel="stylesheet" href="/logs.css">
+  <script type="module" src="/logs.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">◈ common</a>
+    <span class="tagline">PUBLIC ACTIVITY LOG</span>
+    <a class="back" href="/">← Back to chat</a>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Log navigation">
+      <div class="side-heading">LOG CHANNELS</div>
+      <nav id="channels" aria-label="Group chat logs">
+        <a href="/logs" data-group="" class="channel active">All activity</a>
+      </nav>
+      <p class="sidebar-note">Group links appear automatically as chats are created. No sign-in is required.</p>
+    </aside>
+    <main class="content">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">LIVE EVENT STREAM</p>
+          <h1 id="page-title">All activity</h1>
+          <p class="subheading">Timestamped key exchanges and message traffic, as recorded by the backend.</p>
+        </div>
+        <div id="connection" class="connection" role="status" aria-live="polite">Connecting…</div>
+      </div>
+      <div class="warning">Public demonstration log — decrypted message contents are visible to anyone with this page. Do not use it for private conversations.</div>
+      <div class="event-toolbar"><span id="counter">0 events</span><span>Updates automatically about every 2 seconds · UTC timestamps</span></div>
+      <div id="events" class="event-list" role="log" aria-label="Activity events" aria-live="off">
+        <p class="empty">Loading events…</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

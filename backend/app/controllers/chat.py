@@ -20,6 +20,18 @@ class ChatController:
                 409, "Conflict: duplicate username/membership or a referenced record changed"
             ) from exc
 
+    def get_server_public_key(self):
+        return self._write(self.service.get_server_public_key)
+
+    def identity_key_generated(self, data):
+        return self._write(self.service.identity_key_generated, data)
+
+    def list_audit_events(self, group_id, after, limit):
+        return self.service.list_audit_events(group_id, after, limit)
+
+    def list_audit_groups(self):
+        return self.service.list_audit_groups()
+
     def create_user(self, data):
         return self._write(self.service.create_user, data)
 
@@ -57,10 +69,10 @@ class ChatController:
         return self._write(self.service.create_message, group_id, data)
 
     def list_messages(self, group_id, limit, offset):
-        return self.service.list_messages(group_id, limit, offset)
+        return self._write(self.service.list_messages, group_id, limit, offset)
 
     def get_message(self, group_id, message_id):
-        return self.service.get_message(group_id, message_id)
+        return self._write(self.service.get_message, group_id, message_id)
 
     def update_message(self, group_id, message_id, data):
         return self._write(self.service.update_message, group_id, message_id, data)

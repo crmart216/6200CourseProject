@@ -6,14 +6,19 @@ from fastapi import APIRouter, Depends, Query
 from app.routes.dependencies import Controller, security_hook
 from app.schemas.chat import (
     ErrorRead,
+    AuditEventRead,
+    AuditGroupRead,
+    IdentityKeyGenerated,
     GroupCreate,
     GroupRead,
     GroupUpdate,
     MemberCreate,
+    MemberJoinRead,
     MemberRead,
     MessageCreate,
     MessageRead,
     MessageUpdate,
+    ServerPublicKeyRead,
     UserCreate,
     UserRead,
 )
@@ -25,6 +30,12 @@ router = APIRouter(
 )
 Limit = Annotated[int, Query(ge=1, le=100)]
 Offset = Annotated[int, Query(ge=0)]
+
+
+@router.get("/publickey", response_model=ServerPublicKeyRead, tags=["Key exchange"])
+def get_server_public_key(controller: Controller):
+    """Get the server's persistent PEM RSA public key for RSA-OAEP-SHA256 encryption."""
+    return controller.get_server_public_key()
 
 
 @router.post("/users", response_model=UserRead, status_code=201, tags=["Users"])
@@ -78,7 +89,11 @@ def delete_group(controller: Controller, group_id: UUID):
 
 
 @router.post(
-    "/groups/{group_id}/members", response_model=MemberRead, status_code=201, tags=["Members"]
+    "/groups/{group_id}/members",
+    response_model=MemberJoinRead,
+    response_model_exclude_none=True,
+    status_code=201,
+    tags=["Members"],
 )
 def add_member(controller: Controller, group_id: UUID, data: MemberCreate):
     """Add member."""
@@ -151,3 +166,26 @@ def update_message(controller: Controller, group_id: UUID, message_id: UUID, dat
 def delete_message(controller: Controller, group_id: UUID, message_id: UUID):
     """Delete message."""
     return controller.delete_message(group_id, message_id)
+
+
+@router.post("/key-events/identity-generated", status_code=201, tags=["Key exchange"])
+def identity_key_generated(controller: Controller, data: IdentityKeyGenerated):
+    """Unauthenticated browser report of new RSA identity-key generation."""
+    return controller.identity_key_generated(data)
+
+
+@router.get("/logs", response_model=list[AuditEventRead], tags=["Public logs"])
+def list_audit_events(
+    controller: Controller,
+    group_id: UUID | None = None,
+    after: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=200)] = 200,
+):
+    """Public append-only audit stream, ordered by increasing event ID. No auth."""
+    return controller.list_audit_events(group_id, after, limit)
+
+
+@router.get("/logs/groups", response_model=list[AuditGroupRead], tags=["Public logs"])
+def list_audit_groups(controller: Controller):
+    """All active and deleted group log links. No auth."""
+    return controller.list_audit_groups()

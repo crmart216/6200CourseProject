@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, pool
 
 from app.core.config import get_settings
 from app.db.session import Base
-from app.models import chat  # noqa: F401 -- register all tables
+from app.models import chat, audit  # noqa: F401 -- register all tables
 
 target_metadata = Base.metadata
 url = get_settings().database_url

@@ -1,7 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models.chat import Group, Membership, Message, User
+from app.models.audit import AuditEvent
 
 
 class ChatRepository:
@@ -66,3 +67,27 @@ class ChatRepository:
                 .offset(offset)
             )
         )
+
+    def audit_events(self, group_id, after, limit):
+        query = select(AuditEvent).where(AuditEvent.id > after)
+        if group_id is not None:
+            query = query.where(AuditEvent.group_id == group_id)
+        return list(self.db.scalars(query.order_by(AuditEvent.id).limit(limit)))
+
+    def audit_groups(self):
+        """Include deleted group rooms so their public histories remain reachable."""
+        active = {str(group.id): group.name for group in self.db.scalars(select(Group))}
+        most_recent = (
+            select(AuditEvent.group_id, func.max(AuditEvent.id).label("last_id"))
+            .where(AuditEvent.group_id.is_not(None))
+            .group_by(AuditEvent.group_id)
+            .subquery()
+        )
+        historic = self.db.execute(
+            select(AuditEvent.group_id, AuditEvent.group_name)
+            .join(most_recent, AuditEvent.id == most_recent.c.last_id)
+        )
+        for group_id, name in historic:
+            if str(group_id) not in active:
+                active[str(group_id)] = name or str(group_id)
+        return [{"id": group_id, "name": name} for group_id, name in sorted(active.items(), key=lambda item: item[1].casefold())]

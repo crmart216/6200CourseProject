@@ -30,7 +30,7 @@ export function createServer(backend = process.env.API_BASE_URL || 'http://local
       return;
     }
     if (url.pathname === '/healthz') { res.writeHead(200); res.end('ok'); return; }
-    const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/styles.css':'styles.css'};
+    const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/crypto.js':'crypto.js','/key-store.js':'key-store.js','/styles.css':'styles.css','/logs':'logs.html','/logs/':'logs.html','/logs.html':'logs.html','/logs.js':'logs.js','/logs.css':'logs.css'};
     const file = files[url.pathname];
     if (!file || !['GET','HEAD'].includes(req.method)) { res.writeHead(404); res.end('Not found'); return; }
     try {

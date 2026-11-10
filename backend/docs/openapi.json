@@ -2,10 +2,52 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Group Chat API",
-    "description": "Group chat REST API. No authentication, authorization, or encryption yet. Client-supplied identities are untrusted.",
+    "description": "Group chat REST API with optional RSA-OAEP-SHA256 group key escrow. Deliberately no authentication or authorization; identities are untrusted. Message content is not encrypted by the backend. Public audit logs intentionally disclose decrypted messages, ciphertext, and key-exchange metadata.",
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/publickey": {
+      "get": {
+        "tags": [
+          "Key exchange"
+        ],
+        "summary": "Get Server Public Key",
+        "description": "Get the server's persistent PEM RSA public key for RSA-OAEP-SHA256 encryption.",
+        "operationId": "get_server_public_key_api_v1_publickey_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerPublicKeyRead"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "post": {
         "tags": [
@@ -596,7 +638,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MemberRead"
+                  "$ref": "#/components/schemas/MemberJoinRead"
                 }
               }
             }
@@ -1174,6 +1216,210 @@
         }
       }
     },
+    "/api/v1/key-events/identity-generated": {
+      "post": {
+        "tags": [
+          "Key exchange"
+        ],
+        "summary": "Identity Key Generated",
+        "description": "Unauthenticated browser report of new RSA identity-key generation.",
+        "operationId": "identity_key_generated_api_v1_key_events_identity_generated_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentityKeyGenerated"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/logs": {
+      "get": {
+        "tags": [
+          "Public logs"
+        ],
+        "summary": "List Audit Events",
+        "description": "Public append-only audit stream, ordered by increasing event ID. No auth.",
+        "operationId": "list_audit_events_api_v1_logs_get",
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "After"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventRead"
+                  },
+                  "title": "Response List Audit Events Api V1 Logs Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/logs/groups": {
+      "get": {
+        "tags": [
+          "Public logs"
+        ],
+        "summary": "List Audit Groups",
+        "description": "All active and deleted group log links. No auth.",
+        "operationId": "list_audit_groups_api_v1_logs_groups_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditGroupRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Audit Groups Api V1 Logs Groups Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -1203,6 +1449,105 @@
   },
   "components": {
     "schemas": {
+      "AuditEventRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "title": "Occurred At"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id"
+          },
+          "group_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Name"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "occurred_at",
+          "event_type",
+          "group_id",
+          "group_name",
+          "user_id",
+          "message_id",
+          "details"
+        ],
+        "title": "AuditEventRead"
+      },
+      "AuditGroupRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "AuditGroupRead"
+      },
       "ErrorRead": {
         "properties": {
           "detail": {
@@ -1234,6 +1579,19 @@
             "type": "string",
             "format": "uuid",
             "title": "Created By"
+          },
+          "encrypted_group_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted Group Key"
           }
         },
         "additionalProperties": false,
@@ -1315,12 +1673,47 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "IdentityKeyGenerated": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "public_key": {
+            "type": "string",
+            "maxLength": 8192,
+            "minLength": 1,
+            "title": "Public Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id",
+          "public_key"
+        ],
+        "title": "IdentityKeyGenerated"
+      },
       "MemberCreate": {
         "properties": {
           "user_id": {
             "type": "string",
             "format": "uuid",
             "title": "User Id"
+          },
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key"
           }
         },
         "additionalProperties": false,
@@ -1329,6 +1722,43 @@
           "user_id"
         ],
         "title": "MemberCreate"
+      },
+      "MemberJoinRead": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Group Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Joined At"
+          },
+          "encrypted_group_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encrypted Group Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id",
+          "user_id",
+          "joined_at"
+        ],
+        "title": "MemberJoinRead"
       },
       "MemberRead": {
         "properties": {
@@ -1443,6 +1873,19 @@
           "content"
         ],
         "title": "MessageUpdate"
+      },
+      "ServerPublicKeyRead": {
+        "properties": {
+          "public_key": {
+            "type": "string",
+            "title": "Public Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_key"
+        ],
+        "title": "ServerPublicKeyRead"
       },
       "UserCreate": {
         "properties": {
